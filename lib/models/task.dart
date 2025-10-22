@@ -6,6 +6,8 @@ class Task {
   final String description;
   final bool completed;
   final String priority;
+  final DateTime? dueDate;
+  final String? categoryId;
   final DateTime createdAt;
 
   Task({
@@ -14,6 +16,8 @@ class Task {
     this.description = '',
     this.completed = false,
     this.priority = 'medium',
+    this.dueDate,
+    this.categoryId,
     DateTime? createdAt,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
@@ -25,6 +29,8 @@ class Task {
       'description': description,
       'completed': completed ? 1 : 0,
       'priority': priority,
+      'dueDate': dueDate?.toIso8601String(),
+      'categoryId': categoryId,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -36,6 +42,8 @@ class Task {
       description: map['description'] ?? '',
       completed: map['completed'] == 1,
       priority: map['priority'] ?? 'medium',
+      dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate']) : null,
+      categoryId: map['categoryId'],
       createdAt: DateTime.parse(map['createdAt']),
     );
   }
@@ -45,6 +53,8 @@ class Task {
     String? description,
     bool? completed,
     String? priority,
+    DateTime? dueDate,
+    String? categoryId,
   }) {
     return Task(
       id: id,
@@ -52,6 +62,8 @@ class Task {
       description: description ?? this.description,
       completed: completed ?? this.completed,
       priority: priority ?? this.priority,
+      dueDate: dueDate ?? this.dueDate,
+      categoryId: categoryId ?? this.categoryId,
       createdAt: createdAt,
     );
   }

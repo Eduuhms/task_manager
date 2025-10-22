@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
+import '../models/category.dart';
 import '../services/database_service.dart';
 
 class TaskFormScreen extends StatefulWidget {
@@ -15,9 +16,12 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _dueDateController = TextEditingController();
   
   String _priority = 'medium';
   bool _completed = false;
+  DateTime? _dueDate;
+  String? _categoryId;
   bool _isLoading = false;
 
   @override
@@ -30,6 +34,11 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       _descriptionController.text = widget.task!.description;
       _priority = widget.task!.priority;
       _completed = widget.task!.completed;
+      _dueDate = widget.task!.dueDate;
+      _categoryId = widget.task!.categoryId ?? 'others';
+      if (_dueDate != null) {
+        _dueDateController.text = '${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}';
+      }
     }
   }
 
@@ -37,6 +46,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
+    _dueDateController.dispose();
     super.dispose();
   }
 
@@ -55,6 +65,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
           description: _descriptionController.text.trim(),
           priority: _priority,
           completed: _completed,
+          dueDate: _dueDate,
+          categoryId: _categoryId,
         );
         await DatabaseService.instance.create(newTask);
         
@@ -74,6 +86,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
           description: _descriptionController.text.trim(),
           priority: _priority,
           completed: _completed,
+          dueDate: _dueDate,
+          categoryId: _categoryId,
         );
         await DatabaseService.instance.update(updatedTask);
         
@@ -224,6 +238,66 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
                     ),
                     
                     const SizedBox(height: 16),
+                    // Dropdown de Categoria
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'Categoria',
+                        prefixIcon: Icon(Icons.category),
+                        border: OutlineInputBorder(),
+                      ),
+                      value: _categoryId ?? 'others',
+                      items: Category.defaults()
+                          .map((c) => DropdownMenuItem(
+                                value: c.id,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: c.color,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(c.name),
+                                  ],
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() => _categoryId = value);
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Due date picker (shows selected date in the field)
+                    TextFormField(
+                      controller: _dueDateController,
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Data de Vencimento',
+                        prefixIcon: Icon(Icons.calendar_today),
+                        border: OutlineInputBorder(),
+                        hintText: 'Selecione uma data',
+                      ),
+                      onTap: () async {
+                        final now = DateTime.now();
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _dueDate ?? now,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            _dueDate = picked;
+                            _dueDateController.text = '${picked.day}/${picked.month}/${picked.year}';
+                          });
+                        }
+                      },
+                    ),
                     
                     // Switch de Completo
                     Card(

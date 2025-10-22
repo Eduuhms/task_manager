@@ -1,9 +1,6 @@
 
-import 'dart:io';
-
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sqflite_common/sqlite_api.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../models/task.dart';
@@ -29,12 +26,17 @@ class DatabaseService {
     final directory = await getApplicationDocumentsDirectory();
     final path = join(directory.path, fileName);
 
-    return await databaseFactory.openDatabase(
+    return await openDatabase(
       path,
-      options: OpenDatabaseOptions(
-        version: 1,
-        onCreate: _createDB,
-      ),
+      version: 2,
+      onCreate: _createDB,
+      onUpgrade: (db, oldVersion, newVersion) async {
+        // If upgrading from v1 to v2, add new columns
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE tasks ADD COLUMN dueDate TEXT');
+          await db.execute('ALTER TABLE tasks ADD COLUMN categoryId TEXT');
+        }
+      },
     );
   }
 
@@ -46,6 +48,8 @@ class DatabaseService {
         description TEXT,
         completed INTEGER NOT NULL,
         priority TEXT NOT NULL,
+        dueDate TEXT,
+        categoryId TEXT,
         createdAt TEXT NOT NULL
       )
     ''');
@@ -73,9 +77,20 @@ class DatabaseService {
 
   Future<List<Task>> readAll() async {
     final db = await database;
-    const orderBy = 'createdAt DESC';
-    final result = await db.query('tasks', orderBy: orderBy);
-    return result.map((map) => Task.fromMap(map)).toList();
+    final result = await db.query('tasks');
+    final list = result.map((map) => Task.fromMap(map)).toList();
+
+    // Sort by dueDate ascending (nulls last). If no dueDate, fallback to createdAt desc
+    list.sort((a, b) {
+      if (a.dueDate == null && b.dueDate == null) {
+        return b.createdAt.compareTo(a.createdAt);
+      }
+      if (a.dueDate == null) return 1;
+      if (b.dueDate == null) return -1;
+      return a.dueDate!.compareTo(b.dueDate!);
+    });
+
+    return list;
   }
 
   Future<int> update(Task task) async {

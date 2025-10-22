@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/task.dart';
+import '../models/category.dart';
 import '../services/database_service.dart';
 import '../widgets/task_card.dart';
 import 'task_form_screen.dart';
@@ -14,6 +15,7 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> {
   List<Task> _tasks = [];
   String _filter = 'all'; // all, completed, pending
+  String _categoryFilter = 'all'; // all or categoryId
   bool _isLoading = false;
 
   @override
@@ -32,14 +34,26 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   List<Task> get _filteredTasks {
+    var list = _tasks;
+
+    // Filter by status
     switch (_filter) {
       case 'completed':
-        return _tasks.where((t) => t.completed).toList();
+        list = list.where((t) => t.completed).toList();
+        break;
       case 'pending':
-        return _tasks.where((t) => !t.completed).toList();
+        list = list.where((t) => !t.completed).toList();
+        break;
       default:
-        return _tasks;
+        break;
     }
+
+    // Filter by category
+    if (_categoryFilter != 'all') {
+      list = list.where((t) => t.categoryId == _categoryFilter).toList();
+    }
+
+    return list;
   }
 
   Future<void> _toggleTask(Task task) async {
@@ -145,6 +159,28 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 ),
               ),
             ],
+          ),
+          // Category filter
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.category),
+            onSelected: (value) => setState(() => _categoryFilter = value),
+            itemBuilder: (context) {
+              final items = <PopupMenuEntry<String>>[];
+              items.add(const PopupMenuItem(value: 'all', child: Text('Todas categorias')));
+              for (final c in Category.defaults()) {
+                items.add(PopupMenuItem(
+                  value: c.id,
+                  child: Row(
+                    children: [
+                      Container(width: 12, height: 12, decoration: BoxDecoration(color: c.color, borderRadius: BorderRadius.circular(3))),
+                      const SizedBox(width: 8),
+                      Text(c.name),
+                    ],
+                  ),
+                ));
+              }
+              return items;
+            },
           ),
         ],
       ),

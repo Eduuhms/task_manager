@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/task.dart';
+import '../models/category.dart';
 
 class TaskCard extends StatelessWidget {
   final Task task;
@@ -58,6 +59,12 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
+    final categories = Category.defaults();
+    final category = categories.firstWhere(
+      (c) => c.id == task.categoryId,
+      orElse: () => Category.defaults().last,
+    );
+    final isOverdue = task.dueDate != null && !task.completed && task.dueDate!.isBefore(DateTime.now());
     
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -167,19 +174,34 @@ class TaskCard extends StatelessWidget {
                         ),
                         
                         const SizedBox(width: 12),
+                        // Categoria
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: category.color.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: category.color, width: 1),
+                          ),
+                          child: Text(
+                            category.name,
+                            style: TextStyle(color: category.color, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
                         
                         // Data
                         Icon(
                           Icons.access_time,
                           size: 14,
-                          color: Colors.grey.shade600,
+                          color: isOverdue ? Colors.red : Colors.grey.shade600,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          dateFormat.format(task.createdAt),
+                          task.dueDate != null ? dateFormat.format(task.dueDate!) : dateFormat.format(task.createdAt),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: isOverdue ? Colors.red : Colors.grey.shade600,
                           ),
                         ),
                       ],
