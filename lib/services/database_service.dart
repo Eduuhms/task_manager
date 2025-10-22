@@ -1,5 +1,11 @@
-import 'package:sqflite/sqflite.dart';
+
+import 'dart:io';
+
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:sqflite_common/sqlite_api.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
 import '../models/task.dart';
 
 class DatabaseService {
@@ -10,18 +16,25 @@ class DatabaseService {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
+
+    // Garante que o FFI esteja configurado (idealmente isso já está no main)
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+
     _database = await _initDB('tasks.db');
     return _database!;
   }
 
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
+  Future<Database> _initDB(String fileName) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final path = join(directory.path, fileName);
 
-    return await openDatabase(
+    return await databaseFactory.openDatabase(
       path,
-      version: 1,
-      onCreate: _createDB,
+      options: OpenDatabaseOptions(
+        version: 1,
+        onCreate: _createDB,
+      ),
     );
   }
 
